@@ -1,3 +1,8 @@
+
+# =============================================================================
+#  Header
+# =============================================================================
+
 from ultralytics import YOLO
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,6 +18,9 @@ KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
     "left_wrist", "right_wrist", "left_hip", "right_hip",
     "left_knee", "right_knee", "left_ankle", "right_ankle" ]
 
+# =============================================================================
+#  Funções
+# =============================================================================
 
 def get_pose_bbox(keypoints):
 
@@ -89,7 +97,6 @@ def generate_frames_csv (name):
                     print(d3)
 
                     for img in os.listdir(path2):
-                        
                         idx_frame = int(img.split('.')[0].split('_')[1])
                         path3 = os.path.join(path2, img)
 
@@ -145,6 +152,15 @@ def generate_frames_csv (name):
     
         
 def filter (csv_name):
+    """
+        Filtra os campos de um arquivo CSV
+
+        Parameters:
+            csv_name (path): endereço do arquivo CSV com as posições
+
+        Returns:
+            (vetor de dicionario): dados filtrados do CSV
+    """
 
     df = pd.read_csv(csv_name)
 
@@ -159,6 +175,15 @@ def filter (csv_name):
 
 
 def detect_fall (df_person):
+    """
+        Detecta uma queda
+
+        Parameters:
+            df: numero de positivos
+
+        Returns:
+            caiu (boolean): true para caiu e false para não caiu
+    """
 
     for _, row in df_person.iterrows():
 
@@ -211,6 +236,19 @@ def detect_fall (df_person):
 
 
 def classifier (df):
+    """
+        Classifica um conjunto de casos vindo de um arquivo CSV
+
+        Parameters:
+            df: numero de positivos
+
+        Returns:
+            total (int): numero total de casos
+            tp (int): numero de positivos
+            fp (int): numero de falso positivos
+            tn (int): numero de negativos
+            fn (int): numero de falsos negativos
+    """
 
     total = 0
     tp = fp = fn = tn = 0
@@ -233,18 +271,38 @@ def classifier (df):
             
 
 def accuracy (tp, fp, tn, fn):
+    """
+        Calcula a acuracia dado o numero de positivos, falsos positivo,
+        negativos e o falsos negativos
 
+        Parameters:
+            tp(int): numero de positivos
+            fp(int): numero de falsos positivos
+            tn(int): numero de negativos
+            fn(int): numero de falsos negativos
+
+        Returns:
+            float: porcentagem da acuracia de 0% a 100%
+    """
     return ((tp + tn) / (tp + tn + fp + fn)) * 100
 
+# =============================================================================
+#  Main
+# =============================================================================
+
+"""
+1) calcula a acuracia usando o frames.csv já existente
+python3 geom.py
+
+2) calcula a acuracia gerando o arquivo frames.csv a partir das imagens
+python3 geom.py gerar
+"""
 
 if __name__ == "__main__":
-
     csv_name = 'frames.csv'
 
-    frames = bool(sys.argv[1])
-
-    #if (frames):
-    #    generate_frames_csv(csv_name)
+    if len(sys.argv) > 1:
+        generate_frames_csv(csv_name)
 
     df = filter(csv_name)
 
