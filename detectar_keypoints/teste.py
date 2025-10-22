@@ -1,22 +1,22 @@
-# This file is part of the Intercampi (https://github.com/VRI-UFPR/intercampi)
-# Copyright (c) 2025 VRI
-#  - Maite
-# 
-# This program is free software: you can redistribute it and/or modify  
-# it under the terms of the GNU General Public License as published by  
-# the Free Software Foundation, version 3.
+# Deteccao de Queda para o projeto Lucas
+# Copyright (C) 2025 Maite Aska Shinkai Kamei
 #
-# This program is distributed in the hope that it will be useful, but 
-# WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
-# General Public License for more details.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# You should have received a copy of the GNU General Public License 
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# =======================================================================================
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# =============================================================================
 #  Header
-# =======================================================================================
+# =============================================================================
 
 import cv2
 import csv
@@ -24,16 +24,9 @@ from ultralytics import YOLO
 
 yolo_modelo_arquivo = "yolo11n-pose.pt"
 
-# =======================================================================================
-#  Funcoes
-# =======================================================================================
-
-
-
-
-# =======================================================================================
+# =============================================================================
 #  Main
-# =======================================================================================
+# =============================================================================
 
 # 1. Carrega o modelo de pose
 model = YOLO("yolo11n-pose.pt") 

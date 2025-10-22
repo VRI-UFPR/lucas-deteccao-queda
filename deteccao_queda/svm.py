@@ -1,3 +1,23 @@
+# Deteccao de Queda para o projeto Lucas
+# Copyright (C) <year>  <name of author>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# =============================================================================
+#  Header
+# =============================================================================
+
 from ultralytics import YOLO
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -16,6 +36,10 @@ KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
     "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
     "left_wrist", "right_wrist", "left_hip", "right_hip",
     "left_knee", "right_knee", "left_ankle", "right_ankle" ]
+
+# =============================================================================
+#  Funções
+# =============================================================================
 
 def generate_frames_csv (name):
 
@@ -109,6 +133,9 @@ def cross_validation (df):
 
     return acc
 
+# =============================================================================
+#  Main
+# =============================================================================
 
 if __name__ == "__main__":
 
