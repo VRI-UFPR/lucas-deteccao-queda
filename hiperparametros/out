@@ -1,0 +1,170 @@
+========== KNN ==========
+1
+Acurácia:  0.9009
+Desvio:  0.0133
+========== KNN ==========
+3
+Acurácia:  0.9111
+Desvio:  0.0135
+========== KNN ==========
+5
+Acurácia:  0.9178
+Desvio:  0.0187
+========== KNN ==========
+7
+Acurácia:  0.9201
+Desvio:  0.0179
+========== KNN ==========
+9
+Acurácia:  0.9218
+Desvio:  0.0179
+========== KNN ==========
+11
+Acurácia:  0.9223
+Desvio:  0.0198
+========== KNN ==========
+15
+Acurácia:  0.9243
+Desvio:  0.0195
+
+Melhor KNN: 15
+
+========== RF ==========
+50 10
+Acurácia:  0.9282
+Desvio:  0.0213
+========== RF ==========
+50 20
+Acurácia:  0.9268
+Desvio:  0.0193
+========== RF ==========
+50 30
+Acurácia:  0.9291
+Desvio:  0.0202
+========== RF ==========
+50 None
+Acurácia:  0.928
+Desvio:  0.0192
+========== RF ==========
+100 10
+Acurácia:  0.9288
+Desvio:  0.0219
+========== RF ==========
+100 20
+Acurácia:  0.9285
+Desvio:  0.0197
+========== RF ==========
+100 30
+Acurácia:  0.9251
+Desvio:  0.0199
+========== RF ==========
+100 None
+Acurácia:  0.9285
+Desvio:  0.02
+========== RF ==========
+200 10
+Acurácia:  0.9285
+Desvio:  0.0213
+========== RF ==========
+200 20
+Acurácia:  0.9277
+Desvio:  0.0208
+========== RF ==========
+200 30
+Acurácia:  0.928
+Desvio:  0.0206
+========== RF ==========
+200 None
+Acurácia:  0.9277
+Desvio:  0.0201
+========== RF ==========
+300 10
+Acurácia:  0.9282
+Desvio:  0.0218
+========== RF ==========
+300 20
+Acurácia:  0.9285
+Desvio:  0.0201
+========== RF ==========
+300 30
+Acurácia:  0.9274
+Desvio:  0.0196
+========== RF ==========
+300 None
+Acurácia:  0.928
+Desvio:  0.02
+
+Melhor Random Forest: 50 30
+
+========== SVM ==========
+linear 0.01
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+linear 0.1
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+linear 1.0
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+rbf 0.01
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+rbf 0.1
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+rbf 1.0
+Acurácia:  0.9268
+Desvio:  0.0203
+========== SVM ==========
+poly 0.01
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+poly 0.1
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+poly 1.0
+Acurácia:  0.928
+Desvio:  0.0223
+========== SVM ==========
+sigmoid 0.01
+Acurácia:  0.9263
+Desvio:  0.021
+========== SVM ==========
+sigmoid 0.1
+Acurácia:  0.9119
+Desvio:  0.022
+========== SVM ==========
+sigmoid 1.0
+Acurácia:  0.8745
+Desvio:  0.0305
+
+Melhor SVM: poly 1.0
+
+========== MLP ==========
+Acurácia:  0.9254
+Desvio:  0.0186
+========== MLP ==========
+Acurácia:  0.9291
+Desvio:  0.0194
+========== MLP ==========
+Acurácia:  0.9265
+Desvio:  0.0146
+========== MLP ==========
+Acurácia:  0.9173
+Desvio:  0.013
+========== MLP ==========
+Acurácia:  0.9204
+Desvio:  0.0218
+========== MLP ==========
+Acurácia:  0.915
+Desvio:  0.0104
+
+
+Melhor MLP: 10
