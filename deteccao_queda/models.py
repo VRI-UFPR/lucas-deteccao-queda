@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+# Heloísa Dias Viotto
+#
 # =============================================================================
 #  Header
 # =============================================================================
@@ -38,7 +40,7 @@ from sklearn.model_selection import GroupKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
 
-PATH = "../database/"
+PATH = "../../database/"
 
 KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
     "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
@@ -244,20 +246,22 @@ def cross_validation (df, model_name):
             test_dataloader = DataLoader (test_dataset, batch_size = 32, shuffle=True)
 
             model = MLP(input, 2)
-            model.train_loop (train_dataloader, 30, 'cpu')
+            
+            # 10 épocas
+            model.train_loop (train_dataloader, 10, 'cpu')
             accuracy = model.evaluate (test_dataloader, 'cpu')
 
             acc.append(accuracy)           
 
     else: 
         if model_name.lower() == 'svm':
-            model = SVC(kernel='rbf', C=1.0, gamma='scale')
+            model = SVC(kernel='poly', C=1.0, gamma='scale')
 
         elif model_name.lower() == 'rf':
-            model = RandomForestClassifier()
+            model = RandomForestClassifier(n_estimators=50, max_depth = 30)
 
         else:
-            model = KNeighborsClassifier(n_neighbors=5)
+            model = KNeighborsClassifier(n_neighbors=15)
 
         for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
             X_train, X_val = feat.iloc[train], feat.iloc[val]
