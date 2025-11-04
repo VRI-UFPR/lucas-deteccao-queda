@@ -278,6 +278,8 @@ def models (feat, alvo, group, gkf, scaler, model_name):
         metrics["ses"].append(tp/(tp+fn))
         metrics["f1"].append((2*tp)/(2*tp + fp + fn))
 
+    return metrics
+
 
 """
 Realiza a validação cruzada 
@@ -321,19 +323,8 @@ if __name__ == "__main__":
     metrics = cross_validation(df, model_name)
 
     print(f"========== {model_name.upper()} ==========")
-    print("Acurácia")
-    print(" Média: ", round(stat.mean(metrics["acc"]), 4))
-    print(" Desvio: ", round(stat.stdev(metrics["acc"]), 4))
-    print()
-    print("Sensibilidade")
-    print(" Média: ", round(stat.mean(metrics["ses"]), 4))
-    print(" Desvio: ", round(stat.stdev(metrics["ses"]), 4))
-    print()
-    print("Especificidade")
-    print(" Média: ", round(stat.mean(metrics["esp"]), 4))
-    print(" Desvio: ", round(stat.stdev(metrics["esp"]), 4))
-    print()
-    print("F1-score")
-    print(" Média: ", round(stat.mean(metrics["f1"]), 4))
-    print(" Desvio: ", round(stat.stdev(metrics["f1"]), 4))
+    print(f"Acurácia: {round(stat.mean(metrics["acc"]), 4)} ({round(stat.stdev(metrics["acc"]), 4)})")
+    print(f"Sensibilidade: {round(stat.mean(metrics["ses"]), 4)} ({round(stat.stdev(metrics["ses"]), 4)})")
+    print(f"Especificidade: {round(stat.mean(metrics["esp"]), 4)} ({round(stat.stdev(metrics["esp"]), 4)})")
+    print(f"F1-score: {round(stat.mean(metrics["f1"]), 4)} ({round(stat.stdev(metrics["f1"]), 4)})")
     
