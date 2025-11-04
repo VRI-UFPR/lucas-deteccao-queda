@@ -38,7 +38,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GroupKFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
 
 PATH = "../../database/"
 
@@ -114,13 +114,11 @@ class MLP(nn.Module):
                 all_preds.append(predicted.cpu())
                 all_probs.append(proba.cpu())
 
-        # Concatena todos os batches para formar vetores completos
         all_labels = torch.cat(all_labels)
         all_preds = torch.cat(all_preds)
         all_probs = torch.cat(all_probs)
 
-        # Agora chama a função confusion_matrix com os vetores inteiros
-        return accuracy_score(all_labels, all_preds)
+        return all_labels, all_preds
 
 """
 Estrutura de dados Dataset utilizado com o MLP
@@ -216,6 +214,71 @@ def filter (csv_name):
     return df
 
 
+def mlp (feat, alvo, group, gkf, scaler):
+
+    input = feat.shape[1]
+    metrics = {"acc": [], "ses": [], "esp": [], "f1": []}
+        
+    for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
+        X_train, X_val = feat.iloc[train], feat.iloc[val]
+        y_train, y_val = alvo.iloc[train], alvo.iloc[val]
+
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+
+        train_dataset = VideoDataset(X_train, y_train)
+        train_dataloader = DataLoader (train_dataset, batch_size=32, shuffle=True)
+
+        test_dataset = VideoDataset (X_val, y_val)
+        test_dataloader = DataLoader (test_dataset, batch_size = 32, shuffle=True)
+
+        model = MLP(input, 2)
+
+        # 10 épocas
+        model.train_loop (train_dataloader, 10, 'cpu')
+        labels, preds = model.evaluate (test_dataloader, 'cpu')
+
+        tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()           
+
+        metrics["acc"].append((tp + tn)/(tp+tn+fp+fn))
+        metrics["esp"].append(tn/(tn+fp))
+        metrics["ses"].append(tp/(tp+fn))
+        metrics["f1"].append((2*tp)/(2*tp + fp + fn))
+
+    return metrics
+
+def models (feat, alvo, group, gkf, scaler, model_name):
+
+    if model_name.lower() == 'svm':
+        model = SVC(kernel='poly', C=1.0, gamma='scale')
+
+    elif model_name.lower() == 'rf':
+        model = RandomForestClassifier(n_estimators=50, max_depth = 30)
+
+    else:
+        model = KNeighborsClassifier(n_neighbors=15)
+
+
+    metrics = {"acc": [], "ses": [], "esp": [], "f1": []}
+
+    for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
+        X_train, X_val = feat.iloc[train], feat.iloc[val]
+        y_train, y_val = alvo.iloc[train], alvo.iloc[val]
+
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+            
+        tn, fp, fn, tp = confusion_matrix(y_val, y_pred).ravel()           
+
+        metrics["acc"].append((tp + tn)/(tp+tn+fp+fn))
+        metrics["esp"].append(tn/(tn+fp))
+        metrics["ses"].append(tp/(tp+fn))
+        metrics["f1"].append((2*tp)/(2*tp + fp + fn))
+
+
 """
 Realiza a validação cruzada 
 """
@@ -227,59 +290,11 @@ def cross_validation (df, model_name):
 
     gkf = GroupKFold(n_splits=5)
     scaler = StandardScaler()
-    acc = []
 
     if model_name.lower() == 'mlp':
-        input = feat.shape[1]
-        
-        for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
-            X_train, X_val = feat.iloc[train], feat.iloc[val]
-            y_train, y_val = alvo.iloc[train], alvo.iloc[val]
+        return mlp(feat, alvo, group, gkf, scaler)
 
-            X_train = scaler.fit_transform(X_train)
-            X_val = scaler.transform(X_val)
-
-            train_dataset = VideoDataset(X_train, y_train)
-            train_dataloader = DataLoader (train_dataset, batch_size=32, shuffle=True)
-
-            test_dataset = VideoDataset (X_val, y_val)
-            test_dataloader = DataLoader (test_dataset, batch_size = 32, shuffle=True)
-
-            model = MLP(input, 2)
-            
-            # 10 épocas
-            model.train_loop (train_dataloader, 10, 'cpu')
-            accuracy = model.evaluate (test_dataloader, 'cpu')
-
-            acc.append(accuracy)           
-
-    else: 
-        if model_name.lower() == 'svm':
-            model = SVC(kernel='poly', C=1.0, gamma='scale')
-
-        elif model_name.lower() == 'rf':
-            model = RandomForestClassifier(n_estimators=50, max_depth = 30)
-
-        else:
-            model = KNeighborsClassifier(n_neighbors=15)
-
-        for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
-            X_train, X_val = feat.iloc[train], feat.iloc[val]
-            y_train, y_val = alvo.iloc[train], alvo.iloc[val]
-
-            X_train = scaler.fit_transform(X_train)
-            X_val = scaler.transform(X_val)
-
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_val)
-
-            acc.append(accuracy_score(y_val, y_pred))
-
-    
-    mean = stat.mean(acc)
-    stdev = stat.stdev(acc)
-
-    return mean, stdev
+    return models (feat, alvo, group, gkf, scaler, model_name)
 
 # =============================================================================
 #  Main
@@ -303,10 +318,22 @@ if __name__ == "__main__":
         generate_frames_csv(csv_name)
 
     df = filter(csv_name)
-    acc, stdev = cross_validation(df, model_name)
+    metrics = cross_validation(df, model_name)
 
     print(f"========== {model_name.upper()} ==========")
-    print("Acurácia: ", round(acc, 4))
-    print("Desvio: ", round(stdev, 4))
-
+    print("Acurácia")
+    print(" Média: ", round(stat.mean(metrics["acc"]), 4))
+    print(" Desvio: ", round(stat.stdev(metrics["acc"]), 4))
+    print()
+    print("Sensibilidade")
+    print(" Média: ", round(stat.mean(metrics["ses"]), 4))
+    print(" Desvio: ", round(stat.stdev(metrics["ses"]), 4))
+    print()
+    print("Especificidade")
+    print(" Média: ", round(stat.mean(metrics["esp"]), 4))
+    print(" Desvio: ", round(stat.stdev(metrics["esp"]), 4))
+    print()
+    print("F1-score")
+    print(" Média: ", round(stat.mean(metrics["f1"]), 4))
+    print(" Desvio: ", round(stat.stdev(metrics["f1"]), 4))
     

@@ -26,7 +26,7 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-import math
+import statistics as stat
 
 PATH = "../database/"
 
@@ -287,7 +287,7 @@ def classifier (df):
     return total, tp, fp, tn, fn
             
 
-def accuracy (tp, fp, tn, fn):
+def metrics (tp, fp, tn, fn):
     """
         Calcula a acuracia dado o numero de positivos, falsos positivo,
         negativos e o falsos negativos
@@ -301,7 +301,12 @@ def accuracy (tp, fp, tn, fn):
         Returns:
             float: porcentagem da acuracia de 0% a 100%
     """
-    return ((tp + tn) / (tp + tn + fp + fn)) * 100
+    acc = (tp + tn) / (tp + tn + fp + fn)
+    esp = tn/(tn+fp)
+    ses = tp/(tp+fn)
+    f1 = (2*tp)/(2*tp + fp + fn)
+
+    return acc, ses, esp, f1
 
 # =============================================================================
 #  Main
@@ -325,6 +330,10 @@ if __name__ == "__main__":
 
     total, tp, fp, tn, fn = classifier(df)
 
-    acc = accuracy(tp, fp, tn, fn)
+    acc, ses, esp, f1 = metrics (tp, fp, tn, fn)
 
-    print(acc)
+    print(f"========== GEOMÉTRICO ==========")
+    print("Acurácia: ", round(acc, 4))
+    print("Sensibilidade: ", round(ses, 4))
+    print("Especificidade: ", round(esp, 4))
+    print("F1-score: ", round(f1, 4))
