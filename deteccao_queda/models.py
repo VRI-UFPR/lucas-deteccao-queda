@@ -51,9 +51,7 @@ KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
 #  Funções
 # =============================================================================
 
-"""
-Classe MLP
-"""
+# Classe MLP
 class MLP(nn.Module):
     def __init__(self, enters, outs):
         super().__init__()
@@ -73,13 +71,12 @@ class MLP(nn.Module):
     def forward(self, x):
         return self.mlp(x)
     
-
+    # Loop de treino
     def train_loop(self, train_loader, epochs, device):
         self.train()
         self.to(device)
 
         for epoch in range(epochs):
-            running_loss = 0
             for features, labels in train_loader:
                 features = features.to(device)
                 labels = labels.to(device)
@@ -91,6 +88,7 @@ class MLP(nn.Module):
                 self.optimizer.step()
 
 
+    # Loop de Avaliação
     def evaluate(self, data_loader, device):
         self.eval()
         self.to(device)
@@ -120,9 +118,8 @@ class MLP(nn.Module):
 
         return all_labels, all_preds
 
-"""
-Estrutura de dados Dataset utilizado com o MLP
-"""
+
+#Estrutura de dados utilizado com o MLP
 class VideoDataset (Dataset):
     def __init__(self, data, labels):
         self.data = torch.tensor(data, dtype=torch.float32)
@@ -133,10 +130,11 @@ class VideoDataset (Dataset):
         
     def __getitem__ (self, idx):
         return self.data[idx], self.labels[idx]
-    
-"""
-Gera os pontos com YOLOv11
-"""
+
+
+# Gera os pontos com YOLOv11
+# Organização do diretório:
+#       (no_)fall/tipo(bed, chair, stand)/frames
 def generate_frames_csv (name):
 
     model = YOLO('yolo11n-pose.pt')
@@ -160,25 +158,31 @@ def generate_frames_csv (name):
                 for d3 in os.listdir(path1):
 
                     path2 = os.path.join(path1, d3)
-                    print(d3)
-
                     for img in os.listdir(path2):
                         
+                        # Pega o id do frame
                         idx_frame = int(img.split('.')[0].split('_')[1])
+
+                        # Seleciona o PATH completo da imagem
                         path3 = os.path.join(path2, img)
 
+                        # Gera os pontos
                         results = model(path3, verbose=False)
                     
+                        # Seleciona os pontos e confianças
                         kyp_xy = results[0].keypoints.xy.cpu().numpy().astype(float)
                         kyp_conf = results[0].keypoints.conf.cpu().numpy().astype(float)
 
+                        # Para cada pessoa no vídeo...
                         for person_id, (xy, confs) in enumerate(zip(kyp_xy, kyp_conf)):
                             
+                            # Verifica a classificação
                             if 'no' in d0.lower():
                                 fall = 0
                             else:
                                 fall = 1
                             
+                            # Define dados básicos para CSV
                             row = {
                                 "video": d3, 
                                 "frame": idx_frame, 
@@ -186,69 +190,93 @@ def generate_frames_csv (name):
                                 "fall": fall,
                                 }
                             
+                            # Relaciona nome com pontos
                             for i, name in enumerate(KYP_NAMES):
                                 row[f"{name}_x"] = xy[i, 0]
                                 row[f"{name}_y"] = xy[i, 1]
                                 row[f"{name}_conf"] = confs[i]
                         
+                            # Adiciona no dicionário de informações básicas
                             rows.append(row)
         
+    # Gera dataframe com todos os pontos
     df = pd.DataFrame(rows)
     df.to_csv(name, index=False)
-    print(df)
+    print("Gerado CSV")
     
 
-"""
-Filtra os atributos do csv
-"""   
+# Filtra os atributos do csv  
 def filter (csv_name):
 
     df = pd.read_csv(csv_name)
+
+    # Transforma a coluna video em número
     df['video_int'] = df['video'].astype('category').cat.codes
     df = df.drop(columns="video")
 
+    # Retira as colunas de confiabilidade
     for col in df.columns:
         if 'conf' in col:
             df = df.drop(columns=col)
 
     return df
 
-
+# Realiza a cross_validation do mlp
 def mlp (feat, alvo, group, gkf, scaler):
 
+    # Define a entrada
     input = feat.shape[1]
+
+    # Define a estrutura de dados de métricas
     metrics = {"acc": [], "ses": [], "esp": [], "f1": []}
         
     for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
+        
+        # Seleciona as splits
         X_train, X_val = feat.iloc[train], feat.iloc[val]
         y_train, y_val = alvo.iloc[train], alvo.iloc[val]
 
+        # Normaliza os dados
         X_train = scaler.fit_transform(X_train)
         X_val = scaler.transform(X_val)
 
+        # Seleciona o dataset e dataloader de treino
         train_dataset = VideoDataset(X_train, y_train)
         train_dataloader = DataLoader (train_dataset, batch_size=32, shuffle=True)
 
+        # Seleciona o dataset e dataloader de test
         test_dataset = VideoDataset (X_val, y_val)
         test_dataloader = DataLoader (test_dataset, batch_size = 32, shuffle=True)
 
+        # Instancia o modelo
         model = MLP(input, 2)
 
-        # 10 épocas
+        # Treina o modelo por 10 épcocas
         model.train_loop (train_dataloader, 10, 'cpu')
+
+        # Avalia o modelo
         labels, preds = model.evaluate (test_dataloader, 'cpu')
 
+        # Gera:
+        #   tn: True negative (verdadeiro negativo)
+        #   fp: false positive (falso positivo)
+        #   fn: false negative (falso negativo)
+        #   tp: true positive (verdadeiro positivo)
         tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()           
 
+        # Calcula as métricas e adiciona na respectiva lista
         metrics["acc"].append((tp + tn)/(tp+tn+fp+fn))
         metrics["esp"].append(tn/(tn+fp))
         metrics["ses"].append(tp/(tp+fn))
         metrics["f1"].append((2*tp)/(2*tp + fp + fn))
 
+    # Retorna as métricas
     return metrics
 
+# Realiza o cross_validation para outros modelos (KNN, Random Forest e SVM)
 def models (feat, alvo, group, gkf, scaler, model_name):
 
+    # Instancia o modelo de acordo com o nome
     if model_name.lower() == 'svm':
         model = SVC(kernel='poly', C=1.0, gamma='scale')
 
@@ -258,21 +286,34 @@ def models (feat, alvo, group, gkf, scaler, model_name):
     else:
         model = KNeighborsClassifier(n_neighbors=15)
 
-
+    # Define a estrutura de dados de métricas
     metrics = {"acc": [], "ses": [], "esp": [], "f1": []}
 
+    # Loop
     for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
+        
+        # Seleciona as splits
         X_train, X_val = feat.iloc[train], feat.iloc[val]
         y_train, y_val = alvo.iloc[train], alvo.iloc[val]
 
+        # Normalização
         X_train = scaler.fit_transform(X_train)
         X_val = scaler.transform(X_val)
 
+        # Treina o modelo
         model.fit(X_train, y_train)
+
+        # Realiza a predição/avaliação
         y_pred = model.predict(X_val)
             
+        # Gera:
+        #   tn: True negative (verdadeiro negativo)
+        #   fp: false positive (falso positivo)
+        #   fn: false negative (falso negativo)
+        #   tp: true positive (verdadeiro positivo)
         tn, fp, fn, tp = confusion_matrix(y_val, y_pred).ravel()           
 
+        # Calcula e armazena as métricas
         metrics["acc"].append((tp + tn)/(tp+tn+fp+fn))
         metrics["esp"].append(tn/(tn+fp))
         metrics["ses"].append(tp/(tp+fn))
@@ -281,9 +322,7 @@ def models (feat, alvo, group, gkf, scaler, model_name):
     return metrics
 
 
-"""
-Realiza a validação cruzada 
-"""
+# Realiza a validação cruzada 
 def cross_validation (df, model_name):
 
     feat = df.drop(columns=['fall'], axis=1)
@@ -298,9 +337,11 @@ def cross_validation (df, model_name):
 
     return models (feat, alvo, group, gkf, scaler, model_name)
 
+
 # =============================================================================
 #  Main
 # =============================================================================
+
 
 """
     SVM                   - python3 models.py svm

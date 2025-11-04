@@ -16,6 +16,8 @@
 #
 # Heloísa Dias Viotto
 #
+# Código baseado no artigo Fall detection system for monitoring elderly people using YOLOv7-pose detection model
+
 # =============================================================================
 #  Header
 # =============================================================================
@@ -39,23 +41,30 @@ KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
 #  Funções
 # =============================================================================
 
+# Seleciona a caixa da pessoa
 def get_pose_bbox(keypoints):
 
+    # Arrumando estrutura de dados
     keypoints = np.array(keypoints, dtype=float)
     keypoints = keypoints[~np.isnan(keypoints).any(axis=1)]
 
+    # Caso não haja keypoints
     if len(keypoints) == 0:
         return None
     
+    # Selecionando o centro dos eixos X e Y
     cx = np.mean(keypoints[:, 0])
     cy = np.mean(keypoints[:, 1])
 
+    # Selecionando os pontos mínimos e máximos
     min_x, min_y = np.min(keypoints, axis=0)
     max_x, max_y = np.max(keypoints, axis=0)
 
+    # Definindo altura e largura
     w = max_x - min_x
     h = max_y - min_y
 
+    # Selecionando as bordas a partir do centro
     x_min = cx - w/2
     y_min = cy - h/2
     x_max = cx + w/2
@@ -63,13 +72,17 @@ def get_pose_bbox(keypoints):
 
     return x_min, y_min, x_max, y_max
 
+
+# Selecionando o ponto BODY
 def body (shoulder, hip):
 
+    # Selecionando o meio do corpo a partir do meio do ombro e do quadril
     x = (shoulder[0] + hip[0]) / 2
     y = (shoulder[1] + hip[1]) / 2
 
     return x, y
 
+# Aplicando a fórmula do len_factor do artigo
 def len_factor_from_pose(keypoints):
 
     try:
@@ -87,9 +100,12 @@ def len_factor_from_pose(keypoints):
     return len_factor
 
 
-
+# Gerando CSV
+# Organização do diretório:
+#       (no_)fall/tipo(bed, chair, stand)/frames
 def generate_frames_csv (name):
 
+    # Instancia modelo
     model = YOLO('yolo11n-pose.pt')
 
     rows = []
@@ -111,34 +127,48 @@ def generate_frames_csv (name):
                 for d3 in os.listdir(path1):
 
                     path2 = os.path.join(path1, d3)
-                    print(d3)
 
                     for img in os.listdir(path2):
+
+                        # Seleciona o id do frame
                         idx_frame = int(img.split('.')[0].split('_')[1])
+
+                        # Seleciona o caminho completo da imagem
                         path3 = os.path.join(path2, img)
 
+                        # GEra os pontos
                         results = model(path3, verbose=False)
                     
+                        # Seleciona os pontos e confianças
                         kyp_xy = results[0].keypoints.xy.cpu().numpy().astype(float)
                         kyp_conf = results[0].keypoints.conf.cpu().numpy().astype(float)
 
+                        # Para cada pessoa no vídeo
                         for person_id, (xy, confs) in enumerate(zip(kyp_xy, kyp_conf)):
                             
+                            # Gera a caixa
                             bbox = get_pose_bbox(xy)
+
+                            # Calcula o len_factor
                             len_factor = len_factor_from_pose(xy)
+
+                            # Calcula os pontos do corpo
                             left_body_x, left_body_y = body(xy[5], xy[11])
                             right_body_x, right_body_y = body(xy[6], xy[12])
 
+                            # Abre o bbox (caixa)
                             if bbox is not None:
                                 x1, y1, x2, y2 = bbox
                             else:
                                 x1, y1, x2, y2 = np.nan
 
+                            # Seleciona as labels
                             if 'no' in d0.lower():
                                 fall = 0
                             else:
                                 fall = 1
                             
+                            # Define dados básicos
                             row = {
                                 "video": d3, 
                                 "frame": idx_frame, 
@@ -155,13 +185,16 @@ def generate_frames_csv (name):
                                 "right_body_y": right_body_y,
                                 }
                             
+                            # Relaciona nome com pontos
                             for i, name in enumerate(KYP_NAMES):
                                 row[f"{name}_x"] = xy[i, 0]
                                 row[f"{name}_y"] = xy[i, 1]
                                 row[f"{name}_conf"] = confs[i]
                         
+                            # Adiciona no dicionário informações básicas
                             rows.append(row)
         
+    # Gera o dataframe com todos os pontos
     df = pd.DataFrame(rows)
     df.to_csv(name, index=False)
     print(df)
@@ -176,7 +209,7 @@ def filter (csv_name):
             csv_name (path): endereço do arquivo CSV com as posições
 
         Returns:
-            (vetor de dicionario): dados filtrados do CSV
+            (vetor de dicionário): dados filtrados do CSV
     """
 
     df = pd.read_csv(csv_name)
@@ -186,6 +219,7 @@ def filter (csv_name):
             "left_body_y", "right_body_y", "left_shoulder_y",
             "right_shoulder_y", "left_ankle_y", "right_ankle_y", "fall"]
 
+    # Seleciona os pontos para manter
     df_filter = df[keep]
     
     return df_filter
@@ -193,7 +227,7 @@ def filter (csv_name):
 
 def detect_fall (df_person):
     """
-        Detecta uma queda
+        Detecta uma queda de acordo com o artigo
 
         Parameters:
             df: numero de positivos
@@ -285,8 +319,9 @@ def classifier (df):
                 tn += 1
 
     return total, tp, fp, tn, fn
-            
 
+
+# Calcula as étricas (Acurácia, Sensibilidade, Especificidade e F1-Score)
 def metrics (tp, fp, tn, fn):
     """
         Calcula a acuracia dado o numero de positivos, falsos positivo,
@@ -299,7 +334,10 @@ def metrics (tp, fp, tn, fn):
             fn(int): numero de falsos negativos
 
         Returns:
-            float: porcentagem da acuracia de 0% a 100%
+            float: acurácia
+            float: sensibilidade
+            float: especificidade
+            float: f1-score
     """
     acc = (tp + tn) / (tp + tn + fp + fn)
     esp = tn/(tn+fp)
@@ -313,10 +351,10 @@ def metrics (tp, fp, tn, fn):
 # =============================================================================
 
 """
-1) calcula a acuracia usando o frames.csv já existente
+1) calcula as métricas usando o frames.csv já existente
 python3 geom.py
 
-2) calcula a acuracia gerando o arquivo frames.csv a partir das imagens
+2) calcula as métricas gerando o arquivo frames.csv a partir das imagens
 python3 geom.py gerar
 """
 
@@ -327,9 +365,7 @@ if __name__ == "__main__":
         generate_frames_csv(csv_name)
 
     df = filter(csv_name)
-
     total, tp, fp, tn, fn = classifier(df)
-
     acc, ses, esp, f1 = metrics (tp, fp, tn, fn)
 
     print(f"========== GEOMÉTRICO ==========")
