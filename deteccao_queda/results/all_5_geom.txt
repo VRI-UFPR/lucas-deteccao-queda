@@ -1,0 +1,5 @@
+========== GEOMÉTRICO lists/all_5.csv ==========
+Acurácia:  0.6705
+Sensibilidade:  0.7184
+Especificidade:  0.6249
+F1-score:  0.6803

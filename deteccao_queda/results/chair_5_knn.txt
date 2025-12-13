@@ -1,0 +1,5 @@
+========== KNN lists/chair_5.csv ==========
+Acurácia: 0.5186 (0.0797)
+Sensibilidade: 0.5826 (0.0249)
+Especificidade: 0.4703 (0.1501)
+F1-score: 0.5229 (0.0576)

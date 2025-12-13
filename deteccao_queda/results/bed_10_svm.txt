@@ -1,0 +1,5 @@
+========== SVM lists/bed_10.csv ==========
+Acurácia: 0.6856 (0.0343)
+Sensibilidade: 0.3842 (0.0495)
+Especificidade: 0.858 (0.0394)
+F1-score: 0.4663 (0.0265)

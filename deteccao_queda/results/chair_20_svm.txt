@@ -1,0 +1,5 @@
+========== SVM lists/chair_20.csv ==========
+Acurácia: 0.6955 (0.014)
+Sensibilidade: 0.5646 (0.0352)
+Especificidade: 0.8029 (0.0206)
+F1-score: 0.6244 (0.0194)

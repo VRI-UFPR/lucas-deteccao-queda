@@ -1,0 +1,5 @@
+========== GEOMÉTRICO lists/bed_20.csv ==========
+Acurácia:  0.4735
+Sensibilidade:  0.87
+Especificidade:  0.2203
+F1-score:  0.5629

@@ -1,0 +1,5 @@
+========== MLP lists/stand_5.csv ==========
+Acurácia: 0.6801 (0.0201)
+Sensibilidade: 0.6785 (0.0314)
+Especificidade: 0.6833 (0.0394)
+F1-score: 0.6652 (0.0267)

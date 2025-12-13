@@ -1,0 +1,5 @@
+========== RF lists/bed_20.csv ==========
+Acurácia: 0.6317 (0.034)
+Sensibilidade: 0.5584 (0.0362)
+Especificidade: 0.6711 (0.0503)
+F1-score: 0.5214 (0.0387)

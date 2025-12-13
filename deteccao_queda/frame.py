@@ -23,7 +23,7 @@
 """
 
 Dado um nome de vídeo (argumento 1) e um caminho para salvar os frames, o vídeo é dividido 
-em frames de 0.1 segundos e salavdos na pasta criado em PATH_TO_SAVE/VIDEO_NAME
+em frames de 1 segundos e salavdos na pasta criado em PATH_TO_SAVE/VIDEO_NAME
 
 """
 
@@ -39,15 +39,20 @@ import os
 # Adquirindo argumentos
 video_name = sys.argv[1]
 path_to_save = sys.argv[2]
+frames_segundo = int(sys.argv[3])  # segundos
 
 # Definições
 video = cv2.VideoCapture(video_name)
 fps = int(video.get(cv2.CAP_PROP_FPS))  # frames por segundo
-intervalo = 1  # segundos
-frame_intervalo = fps * intervalo
+frame_intervalo = int(fps / frames_segundo)
+
+if frame_intervalo < 1:
+    frame_intervalo = 1
+
 
 video_base = os.path.splitext(os.path.basename(video_name))[0]
-save_dir = os.path.join(path_to_save, video_base)
+save = os.path.join(path_to_save, video_base)
+save_dir = os.path.join(save, f"Frame_{frames_segundo}")
 
 os.makedirs(save_dir, exist_ok=True)
 
@@ -65,3 +70,4 @@ while True:
 
 # Fechamento do vídeo
 video.release()
+

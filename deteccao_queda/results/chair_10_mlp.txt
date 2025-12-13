@@ -1,0 +1,5 @@
+========== MLP lists/chair_10.csv ==========
+Acurácia: 0.6889 (0.0264)
+Sensibilidade: 0.6694 (0.0504)
+Especificidade: 0.7039 (0.0307)
+F1-score: 0.6579 (0.0377)

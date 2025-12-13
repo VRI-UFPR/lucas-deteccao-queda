@@ -1,0 +1,5 @@
+========== KNN lists/stand_5.csv ==========
+Acurácia: 0.6183 (0.0217)
+Sensibilidade: 0.6403 (0.0269)
+Especificidade: 0.6007 (0.0377)
+F1-score: 0.6112 (0.0258)

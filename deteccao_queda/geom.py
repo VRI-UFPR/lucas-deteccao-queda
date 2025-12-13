@@ -22,186 +22,15 @@
 #  Header
 # =============================================================================
 
-from ultralytics import YOLO
-import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
-import os
 import sys
 import statistics as stat
-
-PATH = "../database/"
-
-KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
-    "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
-    "left_wrist", "right_wrist", "left_hip", "right_hip",
-    "left_knee", "right_knee", "left_ankle", "right_ankle" ]
 
 # =============================================================================
 #  Funções
 # =============================================================================
 
-# Seleciona a caixa da pessoa
-def get_pose_bbox(keypoints):
-
-    # Arrumando estrutura de dados
-    keypoints = np.array(keypoints, dtype=float)
-    keypoints = keypoints[~np.isnan(keypoints).any(axis=1)]
-
-    # Caso não haja keypoints
-    if len(keypoints) == 0:
-        return None
-    
-    # Selecionando o centro dos eixos X e Y
-    cx = np.mean(keypoints[:, 0])
-    cy = np.mean(keypoints[:, 1])
-
-    # Selecionando os pontos mínimos e máximos
-    min_x, min_y = np.min(keypoints, axis=0)
-    max_x, max_y = np.max(keypoints, axis=0)
-
-    # Definindo altura e largura
-    w = max_x - min_x
-    h = max_y - min_y
-
-    # Selecionando as bordas a partir do centro
-    x_min = cx - w/2
-    y_min = cy - h/2
-    x_max = cx + w/2
-    y_max = cy + h/2
-
-    return x_min, y_min, x_max, y_max
-
-
-# Selecionando o ponto BODY
-def body (shoulder, hip):
-
-    # Selecionando o meio do corpo a partir do meio do ombro e do quadril
-    x = (shoulder[0] + hip[0]) / 2
-    y = (shoulder[1] + hip[1]) / 2
-
-    return x, y
-
-# Aplicando a fórmula do len_factor do artigo
-def len_factor_from_pose(keypoints):
-
-    try:
-        left_shoulder = keypoints[5]
-        left_hip = keypoints[11]
-        right_shoulder = keypoints[6]
-        right_hip = keypoints[12]
-    except IndexError:
-        return np.nan
-    
-    left_body_x, left_body_y = body(left_shoulder, left_hip)
-
-    len_factor = np.sqrt((left_shoulder[1] - left_body_y)**2 + (left_shoulder[0] - left_body_x)**2)
-    
-    return len_factor
-
-
-# Gerando CSV
-# Organização do diretório:
-#       (no_)fall/tipo(bed, chair, stand)/frames
-def generate_frames_csv (name):
-
-    # Instancia modelo
-    model = YOLO('yolo11n-pose.pt')
-
-    rows = []
-    for d0 in os.listdir(PATH):
-
-        path = os.path.join(PATH, d0)
-
-        for d1 in os.listdir(path):
-
-            path0 = os.path.join(path, d1)
-
-            for d2 in os.listdir(path0):
-                
-                if d2 != 'frames':
-                    continue
-
-                path1 = os.path.join(path0, d2)
-
-                for d3 in os.listdir(path1):
-
-                    path2 = os.path.join(path1, d3)
-
-                    for img in os.listdir(path2):
-
-                        # Seleciona o id do frame
-                        idx_frame = int(img.split('.')[0].split('_')[1])
-
-                        # Seleciona o caminho completo da imagem
-                        path3 = os.path.join(path2, img)
-
-                        # GEra os pontos
-                        results = model(path3, verbose=False)
-                    
-                        # Seleciona os pontos e confianças
-                        kyp_xy = results[0].keypoints.xy.cpu().numpy().astype(float)
-                        kyp_conf = results[0].keypoints.conf.cpu().numpy().astype(float)
-
-                        # Para cada pessoa no vídeo
-                        for person_id, (xy, confs) in enumerate(zip(kyp_xy, kyp_conf)):
-                            
-                            # Gera a caixa
-                            bbox = get_pose_bbox(xy)
-
-                            # Calcula o len_factor
-                            len_factor = len_factor_from_pose(xy)
-
-                            # Calcula os pontos do corpo
-                            left_body_x, left_body_y = body(xy[5], xy[11])
-                            right_body_x, right_body_y = body(xy[6], xy[12])
-
-                            # Abre o bbox (caixa)
-                            if bbox is not None:
-                                x1, y1, x2, y2 = bbox
-                            else:
-                                x1, y1, x2, y2 = np.nan
-
-                            # Seleciona as labels
-                            if 'no' in d0.lower():
-                                fall = 0
-                            else:
-                                fall = 1
-                            
-                            # Define dados básicos
-                            row = {
-                                "video": d3, 
-                                "frame": idx_frame, 
-                                "person_id": person_id,
-                                "fall": fall,
-                                "bbox_x1": x1,
-                                "bbox_y1": y1,
-                                "bbox_x2": x2,
-                                "bbox_y2": y2,
-                                "len_factor": len_factor,
-                                "left_body_x": left_body_x,
-                                "left_body_y": left_body_y,
-                                "right_body_x": right_body_x,
-                                "right_body_y": right_body_y,
-                                }
-                            
-                            # Relaciona nome com pontos
-                            for i, name in enumerate(KYP_NAMES):
-                                row[f"{name}_x"] = xy[i, 0]
-                                row[f"{name}_y"] = xy[i, 1]
-                                row[f"{name}_conf"] = confs[i]
-                        
-                            # Adiciona no dicionário informações básicas
-                            rows.append(row)
-        
-    # Gera o dataframe com todos os pontos
-    df = pd.DataFrame(rows)
-    df.to_csv(name, index=False)
-    print(df)
-    
-    
-        
-def filter (csv_name):
+def filter (list_filter, csv_all):
     """
         Filtra os campos de um arquivo CSV
 
@@ -212,8 +41,11 @@ def filter (csv_name):
             (vetor de dicionário): dados filtrados do CSV
     """
 
-    df = pd.read_csv(csv_name)
+    df1 = pd.read_csv(list_filter)
+    df2 = pd.read_csv(csv_all)
 
+    df = df1.merge(df2, on=["video", "frame"], how="left")
+   
     keep = ["video", "frame", "person_id", "len_factor",
             "bbox_x1", "bbox_x2", "bbox_y1", "bbox_y2",
             "left_body_y", "right_body_y", "left_shoulder_y",
@@ -221,6 +53,7 @@ def filter (csv_name):
 
     # Seleciona os pontos para manter
     df_filter = df[keep]
+    df_filter = df_filter.dropna()
     
     return df_filter
 
@@ -303,17 +136,17 @@ def classifier (df):
 
     total = 0
     tp = fp = fn = tn = 0
-    for video, df_video in df.groupby('video'):
+    for (video, fall_label), df_video in df.groupby(['video', 'fall']):
         for person_id, df_person in df_video.groupby('person_id'):
             x = detect_fall(df_person)
 
             total += 1
 
-            if x and df_person["fall"].iloc[0] == 1:
+            if x and fall_label == 1:
                 tp += 1
-            elif x and df_person["fall"].iloc[0] == 0:
+            elif x and fall_label == 0:
                 fp += 1
-            elif not x and df_person['fall'].iloc[0] == 1:
+            elif not x and fall_label == 1:
                 fn += 1
             else:
                 tn += 1
@@ -359,16 +192,16 @@ python3 geom.py gerar
 """
 
 if __name__ == "__main__":
-    csv_name = 'frames.csv'
 
-    if len(sys.argv) > 1:
-        generate_frames_csv(csv_name)
+    list_filter = sys.argv[1]
+    csv_all = sys.argv[2]
 
-    df = filter(csv_name)
+    df = filter(list_filter, csv_all)
+    
     total, tp, fp, tn, fn = classifier(df)
     acc, ses, esp, f1 = metrics (tp, fp, tn, fn)
 
-    print(f"========== GEOMÉTRICO ==========")
+    print(f"========== GEOMÉTRICO {list_filter} ==========")
     print("Acurácia: ", round(acc, 4))
     print("Sensibilidade: ", round(ses, 4))
     print("Especificidade: ", round(esp, 4))

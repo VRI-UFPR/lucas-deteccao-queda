@@ -1,0 +1,5 @@
+========== RF lists/all_20.csv ==========
+Acurácia: 0.6314 (0.006)
+Sensibilidade: 0.6366 (0.0105)
+Especificidade: 0.6273 (0.011)
+F1-score: 0.6002 (0.0118)

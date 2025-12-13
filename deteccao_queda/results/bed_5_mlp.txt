@@ -1,0 +1,5 @@
+========== MLP lists/bed_5.csv ==========
+Acurácia: 0.6772 (0.0324)
+Sensibilidade: 0.5343 (0.0508)
+Especificidade: 0.7576 (0.048)
+F1-score: 0.5431 (0.0277)

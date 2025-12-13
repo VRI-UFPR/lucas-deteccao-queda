@@ -1,0 +1,5 @@
+========== KNN lists/bed_5.csv ==========
+Acurácia: 0.6128 (0.0258)
+Sensibilidade: 0.5112 (0.0539)
+Especificidade: 0.6718 (0.024)
+F1-score: 0.4862 (0.028)

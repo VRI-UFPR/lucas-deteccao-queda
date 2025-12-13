@@ -1,0 +1,5 @@
+========== XGB lists/chair_10.csv ==========
+Acurácia: 0.622 (0.0227)
+Sensibilidade: 0.7165 (0.0267)
+Especificidade: 0.5455 (0.0214)
+F1-score: 0.6293 (0.0303)

@@ -26,7 +26,6 @@ import numpy as np
 import pandas as pd
 import statistics as stat
 import matplotlib.pyplot as plt
-from ultralytics import YOLO
 
 import torch
 import torch.nn as nn
@@ -40,7 +39,9 @@ from sklearn.model_selection import GroupKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
-PATH = "../../database/"
+from xgboost import XGBClassifier
+
+PATH = os.path.expanduser("~/fall_detection_video_dataset")
 
 KYP_NAMES = [ "nose", "left_eye", "right_eye", "left_ear", "right_ear",
     "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
@@ -132,94 +133,27 @@ class VideoDataset (Dataset):
         return self.data[idx], self.labels[idx]
 
 
-# Gera os pontos com YOLOv11
-# Organização do diretório:
-#       (no_)fall/tipo(bed, chair, stand)/frames
-def generate_frames_csv (name):
-
-    model = YOLO('yolo11n-pose.pt')
-
-    rows = []
-    for d0 in os.listdir(PATH):
-
-        path = os.path.join(PATH, d0)
-
-        for d1 in os.listdir(path):
-
-            path0 = os.path.join(path, d1)
-
-            for d2 in os.listdir(path0):
-                
-                if d2 != 'frames':
-                    continue
-
-                path1 = os.path.join(path0, d2)
-
-                for d3 in os.listdir(path1):
-
-                    path2 = os.path.join(path1, d3)
-                    for img in os.listdir(path2):
-                        
-                        # Pega o id do frame
-                        idx_frame = int(img.split('.')[0].split('_')[1])
-
-                        # Seleciona o PATH completo da imagem
-                        path3 = os.path.join(path2, img)
-
-                        # Gera os pontos
-                        results = model(path3, verbose=False)
-                    
-                        # Seleciona os pontos e confianças
-                        kyp_xy = results[0].keypoints.xy.cpu().numpy().astype(float)
-                        kyp_conf = results[0].keypoints.conf.cpu().numpy().astype(float)
-
-                        # Para cada pessoa no vídeo...
-                        for person_id, (xy, confs) in enumerate(zip(kyp_xy, kyp_conf)):
-                            
-                            # Verifica a classificação
-                            if 'no' in d0.lower():
-                                fall = 0
-                            else:
-                                fall = 1
-                            
-                            # Define dados básicos para CSV
-                            row = {
-                                "video": d3, 
-                                "frame": idx_frame, 
-                                "person_id": person_id,
-                                "fall": fall,
-                                }
-                            
-                            # Relaciona nome com pontos
-                            for i, name in enumerate(KYP_NAMES):
-                                row[f"{name}_x"] = xy[i, 0]
-                                row[f"{name}_y"] = xy[i, 1]
-                                row[f"{name}_conf"] = confs[i]
-                        
-                            # Adiciona no dicionário de informações básicas
-                            rows.append(row)
-        
-    # Gera dataframe com todos os pontos
-    df = pd.DataFrame(rows)
-    df.to_csv(name, index=False)
-    print("Gerado CSV")
-    
-
 # Filtra os atributos do csv  
-def filter (csv_name):
+def filter (list_filter, csv_all):
 
-    df = pd.read_csv(csv_name)
+    df1 = pd.read_csv(list_filter)
+    df2 = pd.read_csv(csv_all)
+
+    df = df1.merge(df2, on=["video", "frame"], how="left")
 
     # Transforma a coluna video em número
     df['video_int'] = df['video'].astype('category').cat.codes
-    df = df.drop(columns="video")
+    df = df.drop(columns=["full", "video", "type", "bbox_x1", "bbox_x2", "bbox_y1", "bbox_y2", "len_factor", "left_body_x", "left_body_y", "right_body_x", "right_body_y"])
+
+    df["group"] = df["video_int"].astype(str) + "_" + df["fall"].astype(str)
+    df = df.drop(columns=["video_int"])
 
     # Retira as colunas de confiabilidade
     for col in df.columns:
         if 'conf' in col:
             df = df.drop(columns=col)
 
-    return df
+    return df.dropna()
 
 # Realiza a cross_validation do mlp
 def mlp (feat, alvo, group, gkf, scaler):
@@ -273,18 +207,7 @@ def mlp (feat, alvo, group, gkf, scaler):
     # Retorna as métricas
     return metrics
 
-# Realiza o cross_validation para outros modelos (KNN, Random Forest e SVM)
-def models (feat, alvo, group, gkf, scaler, model_name):
-
-    # Instancia o modelo de acordo com o nome
-    if model_name.lower() == 'svm':
-        model = SVC(kernel='poly', C=1.0, gamma='scale')
-
-    elif model_name.lower() == 'rf':
-        model = RandomForestClassifier(n_estimators=50, max_depth = 30)
-
-    else:
-        model = KNeighborsClassifier(n_neighbors=15)
+def xgboost (feat, alvo, group, gkf, scaler):
 
     # Define a estrutura de dados de métricas
     metrics = {"acc": [], "ses": [], "esp": [], "f1": []}
@@ -292,6 +215,59 @@ def models (feat, alvo, group, gkf, scaler, model_name):
     # Loop
     for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
         
+        # Seleciona as splits
+        X_train, X_val = feat.iloc[train], feat.iloc[val]
+        y_train, y_val = alvo.iloc[train], alvo.iloc[val]
+
+        # Normalização
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+
+        model = XGBClassifier()
+
+        # Treina o modelo
+        model.fit(X_train, y_train)
+
+        # Realiza a predição/avaliação
+        proba = model.predict_proba(X_val)[:,1]
+
+        thr = 0.35
+        y_pred = (proba >= thr).astype(int)
+
+        # Gera:
+        #   tn: True negative (verdadeiro negativo)
+        #   fp: false positive (falso positivo)
+        #   fn: false negative (falso negativo)
+        #   tp: true positive (verdadeiro positivo)
+        tn, fp, fn, tp = confusion_matrix(y_val, y_pred).ravel()           
+
+        # Calcula e armazena as métricas
+        metrics["acc"].append((tp + tn)/(tp+tn+fp+fn))
+        metrics["esp"].append(tn/(tn+fp))
+        metrics["ses"].append(tp/(tp+fn))
+        metrics["f1"].append((2*tp)/(2*tp + fp + fn))
+
+    return metrics
+
+
+
+# Realiza o cross_validation para outros modelos (KNN, Random Forest e SVM)
+def models (feat, alvo, group, gkf, scaler, model_name):
+
+    metrics = {"acc": [], "ses": [], "esp": [], "f1": []}
+    
+    for fold, (train, val) in enumerate(gkf.split(feat, alvo, group)):
+
+        # Instancia o modelo de acordo com o nome
+        if model_name.lower() == 'svm':
+            model = SVC()
+
+        elif model_name.lower() == 'rf':
+            model = RandomForestClassifier()
+
+        else:
+            model = KNeighborsClassifier()
+
         # Seleciona as splits
         X_train, X_val = feat.iloc[train], feat.iloc[val]
         y_train, y_val = alvo.iloc[train], alvo.iloc[val]
@@ -327,13 +303,16 @@ def cross_validation (df, model_name):
 
     feat = df.drop(columns=['fall'], axis=1)
     alvo = df['fall']
-    group = df['video_int']
+    group = df['group']
 
     gkf = GroupKFold(n_splits=5)
     scaler = StandardScaler()
 
     if model_name.lower() == 'mlp':
         return mlp(feat, alvo, group, gkf, scaler)
+
+    if model_name.lower() == 'xgb':
+        return xgboost(feat, alvo, group, gkf, scaler)
 
     return models (feat, alvo, group, gkf, scaler, model_name)
 
@@ -354,18 +333,17 @@ def cross_validation (df, model_name):
 
 if __name__ == "__main__":
 
-    csv_name = "frames-models.csv"
     model_name = sys.argv[1]
+    list_filter = sys.argv[2]
+    csv_all = sys.argv[3]
 
-    if len(sys.argv) > 2:
-        generate_frames_csv(csv_name)
-
-    df = filter(csv_name)
+    df = filter(list_filter, csv_all)
+    
     metrics = cross_validation(df, model_name)
 
-    print(f"========== {model_name.upper()} ==========")
-    print(f"Acurácia: {round(stat.mean(metrics["acc"]), 4)} ({round(stat.stdev(metrics["acc"]), 4)})")
-    print(f"Sensibilidade: {round(stat.mean(metrics["ses"]), 4)} ({round(stat.stdev(metrics["ses"]), 4)})")
-    print(f"Especificidade: {round(stat.mean(metrics["esp"]), 4)} ({round(stat.stdev(metrics["esp"]), 4)})")
-    print(f"F1-score: {round(stat.mean(metrics["f1"]), 4)} ({round(stat.stdev(metrics["f1"]), 4)})")
+    print(f"========== {model_name.upper()} {list_filter} ==========")
+    print(f"Acurácia: {round(stat.mean(metrics['acc']), 4)} ({round(stat.stdev(metrics['acc']), 4)})")
+    print(f"Sensibilidade: {round(stat.mean(metrics['ses']), 4)} ({round(stat.stdev(metrics['ses']), 4)})")
+    print(f"Especificidade: {round(stat.mean(metrics['esp']), 4)} ({round(stat.stdev(metrics['esp']), 4)})")
+    print(f"F1-score: {round(stat.mean(metrics['f1']), 4)} ({round(stat.stdev(metrics['f1']), 4)})")
     

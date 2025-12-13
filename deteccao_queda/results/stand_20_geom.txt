@@ -1,0 +1,5 @@
+========== GEOMÉTRICO lists/stand_20.csv ==========
+Acurácia:  0.8028
+Sensibilidade:  0.7463
+Especificidade:  0.8742
+F1-score:  0.8087

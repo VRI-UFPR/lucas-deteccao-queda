@@ -1,0 +1,5 @@
+========== SVM lists/stand_10.csv ==========
+Acurácia: 0.6873 (0.0068)
+Sensibilidade: 0.6531 (0.0211)
+Especificidade: 0.7181 (0.0289)
+F1-score: 0.6623 (0.0051)

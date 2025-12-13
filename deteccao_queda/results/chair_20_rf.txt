@@ -1,0 +1,5 @@
+========== RF lists/chair_20.csv ==========
+Acurácia: 0.6344 (0.0096)
+Sensibilidade: 0.6525 (0.0373)
+Especificidade: 0.6212 (0.0316)
+F1-score: 0.6154 (0.0119)

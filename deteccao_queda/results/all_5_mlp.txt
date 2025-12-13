@@ -1,0 +1,5 @@
+========== MLP lists/all_5.csv ==========
+Acurácia: 0.6835 (0.0077)
+Sensibilidade: 0.6033 (0.0393)
+Especificidade: 0.7465 (0.027)
+F1-score: 0.6227 (0.0111)

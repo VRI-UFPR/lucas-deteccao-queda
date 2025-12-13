@@ -1,0 +1,5 @@
+========== GEOMÉTRICO lists/chair_20.csv ==========
+Acurácia:  0.7689
+Sensibilidade:  0.7939
+Especificidade:  0.7394
+F1-score:  0.7879

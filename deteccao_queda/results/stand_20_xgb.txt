@@ -1,0 +1,5 @@
+========== XGB lists/stand_20.csv ==========
+Acurácia: 0.6291 (0.0219)
+Sensibilidade: 0.7466 (0.0135)
+Especificidade: 0.525 (0.0299)
+F1-score: 0.6539 (0.025)

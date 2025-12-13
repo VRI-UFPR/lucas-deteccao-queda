@@ -1,0 +1,5 @@
+========== KNN lists/all_20.csv ==========
+Acurácia: 0.5329 (0.0564)
+Sensibilidade: 0.5955 (0.0179)
+Especificidade: 0.4829 (0.0886)
+F1-score: 0.5272 (0.0291)

@@ -1,0 +1,5 @@
+========== XGB lists/bed_5.csv ==========
+Acurácia: 0.6092 (0.0324)
+Sensibilidade: 0.6105 (0.0618)
+Especificidade: 0.6095 (0.0384)
+F1-score: 0.5284 (0.0281)

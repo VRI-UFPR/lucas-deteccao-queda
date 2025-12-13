@@ -1,0 +1,5 @@
+========== SVM lists/all_20.csv ==========
+Acurácia: 0.6905 (0.0102)
+Sensibilidade: 0.5289 (0.0197)
+Especificidade: 0.8158 (0.0131)
+F1-score: 0.5977 (0.0063)

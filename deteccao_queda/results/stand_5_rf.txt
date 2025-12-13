@@ -1,0 +1,5 @@
+========== RF lists/stand_5.csv ==========
+Acurácia: 0.606 (0.0246)
+Sensibilidade: 0.6441 (0.0302)
+Especificidade: 0.5748 (0.0505)
+F1-score: 0.6051 (0.0246)
