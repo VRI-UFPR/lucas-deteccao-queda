@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Heloísa Dias Viotto
-#
 # Código baseado no artigo Fall detection system for monitoring elderly people using YOLOv7-pose detection model
 
 # =============================================================================
